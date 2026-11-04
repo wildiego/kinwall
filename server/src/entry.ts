@@ -3,6 +3,7 @@
 import { nextReminderAt } from './reminder-schedule.ts';
 import { createApp } from './app.ts';
 import type { Env, WaitCtx } from './env.ts';
+import { syncDueMealie } from './mealie.ts';
 import { syncDue } from './sync.ts';
 import { runNotifications, runMedicineReminders, sealMedicationNotes } from './notify.ts';
 import { runMigrations, type Migration } from './migrate.ts';
@@ -89,9 +90,9 @@ export function createKinwall(env: Env, opts: KinwallOptions = {}) {
      * tick retries, and a host's alarm (a Durable Object per family) isn't failed and re-run for it. */
     async scheduled(now?: Date, ctx?: WaitCtx): Promise<void> {
       await ready();
-      const results = await Promise.allSettled([syncDue(env, ctx), runNotifications(env, now ?? new Date(), ctx), refreshDueFeeds(env, now ?? new Date(), ctx)]);
+      const results = await Promise.allSettled([syncDueMealie(env, ctx), syncDue(env, ctx), runNotifications(env, now ?? new Date(), ctx), refreshDueFeeds(env, now ?? new Date(), ctx)]);
       results.forEach((r, i) => {
-        if (r.status === 'rejected') console.error(`${['calendar sync', 'notifications', 'community calendars'][i]} tick failed:`, errorName(r.reason));
+        if (r.status === 'rejected') console.error(`${['mealie', 'calendar sync', 'notifications', 'community calendars'][i]} tick failed:`, errorName(r.reason));
       });
     },
   };

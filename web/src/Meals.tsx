@@ -1,3 +1,4 @@
+import MealieSheet from './MealieSheet.tsx'
 import { useEffect, useState } from 'react'
 import { withHashParam } from './hashQuery.ts'
 import { api } from './api.ts'
@@ -60,6 +61,7 @@ export default function Meals() {
   const [recipeSheet, setRecipeSheet] = useState<{ recipe: Recipe | null; readOnly?: boolean } | null>(null)
   const [openMeal, setOpenMeal] = useState<Meal | null>(null)
   const [projection, setProjection] = useState(false)
+  const [mealie, setMealie] = useState(false)
   const [importing, setImporting] = useState<{ url: string } | null>(null)
   const [tick, setTick] = useState(0)
   const [pendingMeal, setPendingMeal] = useState<string | null>(null)
@@ -146,8 +148,9 @@ export default function Meals() {
   const compactWeek = isPhone && span === 'week'
   const freeSlot = (date: string) => ['dinner', ...MEAL_SLOTS].find(slot => !bySlot.has(`${date}:${slot}`)) as typeof MEAL_SLOTS[number] | undefined
   return <div className="meals-view scroll-y">
+    {mealie && <MealieSheet from={from} to={to} onClose={() => setMealie(false)} onSynced={() => setTick(n => n + 1)} />}
     <div className="meals-heading"><div><h1>{t('Meals')}</h1><p className="field-hint">{t('What are we eating, and what do we need to buy?')}</p></div>
-      <div className="meal-actions">{admin && <button className="btn btn-secondary" onClick={() => setProjection(true)}><ListIcon /> {t('Groceries')}</button>}{admin && view === 'recipes' && <button className="btn btn-secondary" onClick={() => setImporting({ url: '' })}><LinkIcon /> {t('Import from a link')}</button>}{admin && <button className="btn btn-primary" onClick={() => view === 'week' ? setEditing({ meal: null, initial: { date: today, slot: 'dinner' } }) : view === 'recipes' ? setRecipeSheet({ recipe: null }) : setPlace({ restaurant: null, editing: true })}><PlusIcon /> {view === 'week' ? t('Plan meal') : view === 'recipes' ? t('New recipe') : t('New restaurant')}</button>}</div>
+      <div className="meal-actions">{admin && <button className="btn btn-secondary" onClick={() => setMealie(true)}>{t('Mealie')}</button>}{admin && <button className="btn btn-secondary" onClick={() => setProjection(true)}><ListIcon /> {t('Groceries')}</button>}{admin && view === 'recipes' && <button className="btn btn-secondary" onClick={() => setImporting({ url: '' })}><LinkIcon /> {t('Import from a link')}</button>}{admin && <button className="btn btn-primary" onClick={() => view === 'week' ? setEditing({ meal: null, initial: { date: today, slot: 'dinner' } }) : view === 'recipes' ? setRecipeSheet({ recipe: null }) : setPlace({ restaurant: null, editing: true })}><PlusIcon /> {view === 'week' ? t('Plan meal') : view === 'recipes' ? t('New recipe') : t('New restaurant')}</button>}</div>
     </div>
     <Segmented tabs idBase="meals-tab" label={t('Meals sections')} value={view} onChange={setView} options={[{ key: 'week', label: t('Week planner') }, { key: 'recipes', label: t('Recipe library') }, { key: 'restaurants', label: t('Restaurants') }]} />
     {authError && <p role="alert" className="field-error">{authError} <button className="link-btn" onClick={() => setTick(n => n + 1)}>{t('Retry')}</button></p>}

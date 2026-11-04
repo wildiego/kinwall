@@ -34,3 +34,7 @@ services:
 * The image also has a built-in `HEALTHCHECK`.
 
 Add any other variable from [Configuration](configuration.md) under `environment:`.
+
+For a Mealie connection to a LAN server, add `ALLOW_PRIVATE_MEALIE_URLS: "1"` to Kinwall's
+server environment and restart the service. This opt-in permits private addresses and HTTP
+for Mealie only. See [Mealie planned meals](../integrations/mealie.md).

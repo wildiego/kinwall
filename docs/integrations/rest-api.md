@@ -412,3 +412,10 @@ SHA-256 identifier as the server. Existing registrations remain opted out until 
 registers its medicine choices. Tokens remain encrypted. Failed sends are retried by subsequent
 reminder ticks; successful starts and unchanged updates are deduplicated. Successful medicine,
 settings, ownership and token changes also reconcile activities, independently of the app being open.
+
+### Mealie planned meals
+
+`GET/PUT/DELETE /api/integrations/mealie` manages a parent's encrypted Mealie connection;
+`POST /api/integrations/mealie/sync` pulls `{from,to}` (up to 91 inclusive days). Connected apps
+and paired displays cannot use these endpoints. Recipes stay in Mealie; Kinwall stores meal
+names, dates and recipe links. See [Mealie](mealie.md) for schemas and sync behavior.

@@ -826,5 +826,12 @@
   "Still time for {name}'s medicine": "Noch Zeit für das Medikament von {name}",
   "error|preferences belong to a start token": "Diese Einstellungen gehören zu einem Start-Token.",
   "error|Only parent devices can show kids’ medicine activities": "Nur Elterngeräte können Medikamentenaktivitäten für Kinder anzeigen.",
-  "error|Medicine activities are for the family’s own devices": "Medikamentenaktivitäten sind nur für die eigenen Geräte der Familie verfügbar."
+  "error|Medicine activities are for the family’s own devices": "Medikamentenaktivitäten sind nur für die eigenen Geräte der Familie verfügbar.",
+  "error|Add a Mealie API token.": "Füge ein Mealie-API-Token hinzu.",
+  "error|Could not sync Mealie. Check its address, API token and availability.": "Mealie konnte nicht synchronisiert werden. Prüfe Adresse, API-Token und Erreichbarkeit.",
+  "error|Disconnect Mealie before changing its server or group.": "Trenne Mealie, bevor du Server oder Gruppe änderst.",
+  "error|Manage Mealie from a parent's device.": "Verwalte Mealie vom Gerät eines Elternteils aus.",
+  "error|Mealie is syncing. Try again in a few minutes.": "Mealie wird synchronisiert. Versuche es in ein paar Minuten erneut.",
+  "error|Turn on Meals before syncing Mealie.": "Aktiviere Mahlzeiten, bevor du Mealie synchronisierst.",
+  "error|Use a public HTTPS Mealie address. For a local server, enable ALLOW_PRIVATE_MEALIE_URLS=1 on self-hosted Kinwall.": "Verwende eine öffentliche HTTPS-Adresse für Mealie. Aktiviere für einen lokalen Server ALLOW_PRIVATE_MEALIE_URLS=1 im selbst gehosteten Kinwall."
 }

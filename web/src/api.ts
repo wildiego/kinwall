@@ -1,3 +1,4 @@
+import type { MealieStatus } from './MealieSheet.tsx'
 import type { Announcement, AnnouncementInput, Announcements } from './announcements.ts';
 import { lang, msg, t, tm, type Lang } from './i18n.ts'
 import { useEffect, useRef, useState } from 'react'
@@ -333,6 +334,10 @@ const qs = (q: Record<string, string | undefined>) => { const p = new URLSearchP
 const routinePath = (id: string) => ['api', 'routine-mode', U(id)].join('/')
 
 export const api = {
+  getMealie: () => MOCK ? Promise.resolve<MealieStatus>({ connected: false, url: null, groupSlug: null, lastSyncedAt: null, lastError: null }) : req<MealieStatus>('api/integrations/mealie'),
+  saveMealie: (input: { url: string; groupSlug: string; token?: string }) => MOCK ? Promise.reject(new Error(t('Mealie connections are unavailable in the demo.'))) : req<{ ok: boolean }>('api/integrations/mealie', { method: 'PUT', body: JSON.stringify(input), useAdmin: true }),
+  disconnectMealie: () => req<{ ok: boolean }>('api/integrations/mealie', { method: 'DELETE', useAdmin: true }),
+  syncMealie: (from: string, to: string) => MOCK ? Promise.reject(new Error(t('Mealie connections are unavailable in the demo.'))) : req<{ imported: number; removed: number }>('api/integrations/mealie/sync', { method: 'POST', body: JSON.stringify({ from, to }), useAdmin: true }),
   getRoutineMode: (id: string) => MOCK ? import('./mock-routine.ts').then(m => m.mockRoutine(id)) : get<import('./routineMode.ts').RoutineState>(routinePath(id)),
   setRoutineMode: (id: string, policy: import('./routineMode.ts').RoutinePolicy) => MOCK ? import('./mock-routine.ts').then(m => m.mockRoutine(id, policy)) : put<import('./routineMode.ts').RoutinePolicy>(routinePath(id), policy),
   getRoutineDevices: (id: string): Promise<import('./routineDevices.ts').RoutineDevices> => MOCK ? import('./mock-routine.ts').then(m => m.mockRoutineDevices(id)) : get<import('./routineDevices.ts').RoutineDevices>(['api', 'routine-mode', U(id), 'devices'].join('/')),

@@ -11,6 +11,7 @@ import type { Env } from './env.ts';
 import { syncIntervalMinutes } from './env.ts';
 import { openDb, applyMigrations } from './d1-sqlite.ts';
 import { isClaimed, regenerateSetupCode } from './routes/setup.ts';
+import { syncDueMealie } from './mealie.ts';
 import { syncDue } from './sync.ts';
 import { syncDueTaskLinks, taskSyncCutoff } from './tasks/sync.ts';
 import { runNotifications } from './notify.ts';
@@ -138,6 +139,7 @@ const env: Env = {
   VAPID_SUBJECT: process.env.VAPID_SUBJECT,
   VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+  ALLOW_PRIVATE_MEALIE_URLS: process.env.ALLOW_PRIVATE_MEALIE_URLS,
   ALLOW_PRIVATE_FEED_URLS: process.env.ALLOW_PRIVATE_FEED_URLS,
   ALLOW_PRIVATE_WEBHOOK_URLS: process.env.ALLOW_PRIVATE_WEBHOOK_URLS,
   PHOTO_FOLDER: process.env.PHOTO_FOLDER ? photoFolder(process.env.PHOTO_FOLDER) : undefined,
@@ -198,6 +200,7 @@ serve({
 
 const intervalMs = syncIntervalMinutes(env) * 60 * 1000;
 setInterval(() => {
+  syncDueMealie(env).catch(() => console.error('Mealie sync failed'));
   syncDue(env).catch((err) => console.error('sync loop failed', err));
   // Outings' community calendars, each once a day (routes/outing-feeds.ts).
   refreshDueFeeds(env).catch((err) => console.error('community calendars loop failed', err instanceof Error ? err.name : 'error'));

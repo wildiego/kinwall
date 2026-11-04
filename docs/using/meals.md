@@ -419,3 +419,11 @@ Recipes have `kind` (`meal`, the default, or `basic`) and `makes` (free text, or
 `servings` is what the ingredient amounts are for (the recipe's default servings). `prepMinutes` and `totalMinutes` are optional; leaving them out keeps what an earlier import set. `plan.eaterIds` (optional) is who's eating; without `plan.servings`, the meal's servings are how many. A step is text or `{ text?, bullets?, imageUrl? }` (see [Importing recipes](#importing-recipes)). An ingredient is a line of text, or `{ text, pantry?, category?, name?, quantity?, unit?, qualifier?, preparation? }` where `pantry: false` means it ships in the kit; `name`, `quantity`, `unit`, `qualifier` and `preparation`, when given, are used instead of what the line says (and `qualifier` instead of `pantry`). `plan.calendarId` (optional) also puts the planned meal on that calendar, as if you'd tapped **Add to calendar** and picked it, unless the meal already has an event; `plan.eventStart` is `meal` (default) or `cooking`. It answers `{ recipeId, created, planned, mealId?, reason?, calendarEventId?, calendarError? }`: `created` is false when an earlier import was updated; `planned` is true with the `mealId` when the meal is on the plan (newly, or from an earlier import), and false with a `reason` when the slot was taken. `calendarEventId` is the meal's event; `calendarError` says why it couldn't get one (the meal is still planned).
 
 The [MCP server](../integrations/mcp.md) has `list_recipes`, `get_recipe`, `list_meals`, `get_meal_projection`, `create_recipe`, `update_recipe`, `rate_recipe`, `import_recipe`, `create_meal`, `update_meal` and `apply_meal_projection`.
+
+## Planned meals from Mealie
+
+Choose **Mealie** in Meals on a parent's device to connect your Mealie household's meal plan.
+Kinwall displays the planned meals with recipe links; recipes and cooking instructions stay in
+Mealie. Choose **Sync now** for the dates on screen, or let automatic sync update the upcoming
+weeks. Kinwall notes and cooked status stay local. See [Connect Mealie](../integrations/mealie.md)
+for setup and sync behavior.
