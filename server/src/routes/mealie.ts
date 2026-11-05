@@ -4,7 +4,7 @@ import { ErrorSchema } from '../schemas.ts';
 import { requestKey, isConnectedApp } from '../auth.ts';
 import { encryptConfig, decryptConfig } from '../crypto.ts';
 import { MealDateSchema } from '../meal-schemas.ts';
-import { mealieRow, mealieUrl, syncMealie, MealieError, MEALIE_BUSY, type MealieConfig } from '../mealie.ts';
+import { browseMealieRecipes, MealieRecipesSchema, mealieRow, mealieUrl, syncMealie, MealieError, MEALIE_BUSY, type MealieConfig } from '../mealie.ts';
 import { requestLang, translateError, stored } from '../i18n.ts';
 
 export const mealieRoutes = createRouter();
@@ -46,5 +46,11 @@ mealieRoutes.openapi(createRoute({ method: 'delete', path: '/api/integrations/me
 mealieRoutes.openapi(createRoute({ method: 'post', path: '/api/integrations/mealie/sync', tags: ['Meals'], security, summary: 'Pull dated Mealie meal plans for an inclusive range (parent); never writes to Mealie', request: { body: { content: { 'application/json': { schema: Range } } } }, responses: { 200: { description: 'counts', content: { 'application/json': { schema: Result } } }, ...errors } }), async c => {
   const { from, to } = c.req.valid('json');
   try { return c.json(await syncMealie(c.env, from, to), 200); }
+  catch (e) { if (e instanceof MealieError) return c.json({ error: e.message }, e.status); throw e; }
+});
+
+mealieRoutes.openapi(createRoute({ method: 'get', path: '/api/integrations/mealie/recipes', tags: ['Meals'], security, summary: 'Browse Mealie recipe names and links for local meal planning (parent; read-only)', request: { query: z.object({ search: z.string().trim().max(200).default(''), page: z.coerce.number().int().min(1).max(100000).default(1) }) }, responses: { 200: { description: 'recipes', content: { 'application/json': { schema: MealieRecipesSchema } } }, ...errors } }), async c => {
+  const { search, page } = c.req.valid('query');
+  try { return c.json(await browseMealieRecipes(c.env, search, page), 200); }
   catch (e) { if (e instanceof MealieError) return c.json({ error: e.message }, e.status); throw e; }
 });
