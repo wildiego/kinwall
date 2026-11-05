@@ -23,7 +23,8 @@ meals as ordinary Kinwall meals. Reconnecting imports a fresh set of linked meal
 
 Mealie's API documentation: [API usage](https://mealie.io/documentation/getting-started/api-usage/).
 This integration uses `GET /api/households/mealplans`, with inclusive `start_date`/`end_date`
-and numbered pagination, using the modern household API. It reads single-day entries; newer
+and numbered pagination ordered by `date` (compatible with Mealie 3.29), using the modern
+household API. Sorting by `id` is not supported by that version. It reads single-day entries; newer
 week-wide entries are not requested. The group recipe route is `/g/<group>/r/<recipe-slug>`.
 
 ## What sync changes

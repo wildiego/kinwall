@@ -18,6 +18,26 @@ const config = { url: 'https://mealie.example', groupSlug: 'home', token: 'obvio
 const range = { from: '2026-11-01', to: '2026-11-30' };
 const plan = (id: number, title = 'Pasta', date = '2026-11-08') => ({ id, date, entryType: 'dinner', title: '', text: 'Mealie note', recipe: { name: title, slug: 'pasta' } });
 
+test('Mealie 3.29 meal plans use a supported sort column across pages', async () => {
+  const { env, json } = fixture();
+  await json('/api/integrations/mealie', 'PUT', config);
+  const pages: number[] = [];
+  env.OUTBOUND_FETCH = async input => {
+    const url = new URL(String(input));
+    // Mealie 3.29 rejects id with HTTP 400: "Cannot filter on GroupMealPlan.id".
+    if (url.searchParams.get('orderBy') === 'id') return Response.json({ detail: 'Invalid order_by statement "id": Cannot filter on GroupMealPlan.id' }, { status: 400 });
+    assert.equal(url.searchParams.get('orderBy'), 'date');
+    assert.equal(url.searchParams.get('orderDirection'), 'asc');
+    assert.equal(url.searchParams.get('start_date'), range.from);
+    assert.equal(url.searchParams.get('end_date'), range.to);
+    const page = Number(url.searchParams.get('page'));
+    pages.push(page);
+    return Response.json({ items: [plan(page)], total_pages: 2 });
+  };
+  assert.deepEqual(await json('/api/integrations/mealie/sync', 'POST', range), { imported: 2, removed: 0 });
+  assert.deepEqual(pages, [1, 2]);
+});
+
 test('Mealie removal preserves local cook, eaters, servings and planned time independently', async () => {
   const { env, db, json } = fixture();
   await json('/api/integrations/mealie', 'PUT', config);

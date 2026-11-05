@@ -38,7 +38,8 @@ const Entry = z.object({
 // Bound headers and streamed body; never forward provider error bodies (may contain secrets).
 async function page(env: Env, cfg: MealieConfig, from: string, to: string, n: number) {
   const url = new URL(`${mealieUrl(env, cfg.url)}/api/households/mealplans`);
-  url.search = new URLSearchParams({ start_date: from, end_date: to, page: String(n), perPage: '100', orderBy: 'id', orderDirection: 'asc' }).toString();
+  // Mealie 3.29 only permits filterable columns here; its inherited id is not one.
+  url.search = new URLSearchParams({ start_date: from, end_date: to, page: String(n), perPage: '100', orderBy: 'date', orderDirection: 'asc' }).toString();
   const res = await outboundFetch(env, env.ALLOW_PRIVATE_MEALIE_URLS === '1')(url, {
     headers: { Authorization: ['Bearer', cfg.token].join(' '), Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(10000),
   });
