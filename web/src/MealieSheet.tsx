@@ -18,7 +18,7 @@ export default function MealieSheet({ from, to, onClose, onSynced }: { from: str
     await act(async () => { await api.disconnectMealie(); setToken(''); await load(); onSynced() })
   }
   return <Sheet title={t('Mealie connection')} onClose={onClose} dismissable={!busy} dirty={!!token}>
-    <p className="field-hint">{t('Bring planned meals into Kinwall. Recipes, ingredients and instructions stay in Mealie; open the recipe link to cook there.')}</p>
+    <p className="field-hint">{t('Bring planned meals into Kinwall, or choose a Mealie recipe when planning a meal. Ingredients and instructions stay in Mealie.')}</p>
     <p className="field-hint">{t('Mealie controls meal names, dates and slots. Kinwall keeps your notes, cook and cooked status. Changes here are never sent to Mealie.')}</p>
     {error && <p role="alert" className="field-error">{error}</p>}
     {!status && !error && <p role="status">{t('Loading…')}</p>}
