@@ -1,3 +1,4 @@
+import MealieRecipePicker, { type MealieRecipe } from './MealieRecipePicker.tsx'
 import { useEffect, useId, useState, type KeyboardEvent } from 'react'
 import { api } from './api.ts'
 import { useApp } from './AppContext.tsx'
@@ -121,6 +122,7 @@ export default function MealSheet({ meal, initial, recipes, admin, owner, me = n
   const close = () => { if (!busy) onClose() }
   return <Sheet title={meal ? admin ? t('Edit meal') : meal.title : t('Plan a meal')} onClose={close} dismissable={!busy} dirty={canUpdate ? 'auto' : false} actions={!choosing && canUpdate ? <button type="submit" form={formId} className="btn btn-primary" disabled={busy}>{busy ? t('Saving…') : meal ? t('Save') : t('Add meal')}</button> : undefined}>
     {choosing ? <MealChooser recipes={recipes} slot={draft.slot}
+      onMealie={recipe => { setDraft(d => ({ ...d, mealKind: 'freeform', recipeId: null, restaurantId: null, title: recipe.name, sourceUrl: recipe.sourceUrl })); setChoosing(false) }}
       onRecipe={recipe => { setDraft(d => ({ ...d, mealKind: 'recipe', recipeId: recipe.id, title: recipe.name, servings: recipe.defaultServings })); setChoosing(false) }}
       onOther={(kind, title) => { setDraft(d => ({ ...d, mealKind: kind, recipeId: null, title })); setChoosing(false) }} /> :
     <form id={formId} onSubmit={e => { e.preventDefault(); void save() }}>
@@ -198,13 +200,16 @@ export default function MealSheet({ meal, initial, recipes, admin, owner, me = n
 
 /** The first step of planning a meal: find a recipe (Enter picks the first match), or plan something
  * else by name, or eating out. */
-function MealChooser({ recipes, slot, onRecipe, onOther }: {
-  recipes: Recipe[]; slot: MealSlot; onRecipe: (recipe: Recipe) => void; onOther: (kind: 'freeform' | 'dining_out', title: string) => void
+function MealChooser({ recipes, slot, onRecipe, onOther, onMealie }: {
+  onMealie: (recipe: MealieRecipe) => void; recipes: Recipe[]; slot: MealSlot; onRecipe: (recipe: Recipe) => void; onOther: (kind: 'freeform' | 'dining_out', title: string) => void
 }) {
   const [query, setQuery] = useState('')
+  const [mealie, setMealie] = useState(false)
   const shown = pickerRecipes(recipes, query, null, false)
   const name = query.trim()
+  if (mealie) return <div><button type="button" className="btn btn-secondary" onClick={() => setMealie(false)}>{t('Back')}</button><h3>{t('Mealie recipes')}</h3><MealieRecipePicker onPick={onMealie} /></div>
   return <div className="recipe-picker">
+    <button type="button" className="btn btn-secondary" onClick={() => setMealie(true)}>{t('Choose from Mealie')}</button>
     <div className="field"><label htmlFor="meal-choose">{t('What’s for {meal}?', { meal: tm(SLOT_WORD[slot]) })}</label>
       <input id="meal-choose" type="search" data-autofocus placeholder={t('Find a recipe')} value={query} onChange={e => setQuery(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); if (shown[0]) onRecipe(shown[0]); else if (name) onOther('freeform', name) } }} /></div>
