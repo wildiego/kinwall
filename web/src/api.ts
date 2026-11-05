@@ -334,6 +334,7 @@ const qs = (q: Record<string, string | undefined>) => { const p = new URLSearchP
 const routinePath = (id: string) => ['api', 'routine-mode', U(id)].join('/')
 
 export const api = {
+  mealieRecipes: (search: string, page: number) => MOCK ? Promise.resolve({ items: [{ id: 'demo-mealie', name: 'Pasta', sourceUrl: 'https://mealie.example/g/home/r/pasta' }], page: 1, totalPages: 1 }) : req<{ items: { id: string; name: string; sourceUrl: string }[]; page: number; totalPages: number }>('api/integrations/mealie/recipes?' + new URLSearchParams({ search, page: String(page) }), { useAdmin: true }),
   getMealie: () => MOCK ? Promise.resolve<MealieStatus>({ connected: false, url: null, groupSlug: null, lastSyncedAt: null, lastError: null }) : req<MealieStatus>('api/integrations/mealie'),
   saveMealie: (input: { url: string; groupSlug: string; token?: string }) => MOCK ? Promise.reject(new Error(t('Mealie connections are unavailable in the demo.'))) : req<{ ok: boolean }>('api/integrations/mealie', { method: 'PUT', body: JSON.stringify(input), useAdmin: true }),
   disconnectMealie: () => req<{ ok: boolean }>('api/integrations/mealie', { method: 'DELETE', useAdmin: true }),
