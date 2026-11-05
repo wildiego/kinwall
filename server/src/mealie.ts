@@ -40,6 +40,13 @@ async function page(env: Env, cfg: MealieConfig, from: string, to: string, n: nu
   const url = new URL(`${mealieUrl(env, cfg.url)}/api/households/mealplans`);
   // Mealie 3.29 only permits filterable columns here; its inherited id is not one.
   url.search = new URLSearchParams({ start_date: from, end_date: to, page: String(n), perPage: '100', orderBy: 'date', orderDirection: 'asc' }).toString();
+  const text = await mealieJson(env, cfg, url);
+  const result = z.object({ items: z.array(Entry).max(1000), total_pages: z.number().int().min(0).max(20) }).parse(JSON.parse(text));
+  if ((result.total_pages > 1 && !result.items.length) || (result.total_pages === 0 && result.items.length)) throw new Error();
+  return result;
+}
+// Shared bounded transport: tokens never leave the configured origin, including on redirects.
+async function mealieJson(env: Env, cfg: MealieConfig, url: URL): Promise<string> {
   const res = await outboundFetch(env, env.ALLOW_PRIVATE_MEALIE_URLS === '1')(url, {
     // The Node address-checking transport requires manual mode. Non-2xx responses below
     // reject redirects, so neither Node nor Workers forwards the token to another URL.
@@ -52,9 +59,20 @@ async function page(env: Env, cfg: MealieConfig, from: string, to: string, n: nu
     text += decoder.decode(part.value, { stream: true });
   }
   text += decoder.decode();
-  const result = z.object({ items: z.array(Entry).max(1000), total_pages: z.number().int().min(0).max(20) }).parse(JSON.parse(text));
-  if ((result.total_pages > 1 && !result.items.length) || (result.total_pages === 0 && result.items.length)) throw new Error();
-  return result;
+  return text;
+}
+export const MealieRecipeSchema = z.object({ id: z.string(), name: z.string(), sourceUrl: z.string().max(2000) });
+export const MealieRecipesSchema = z.object({ items: z.array(MealieRecipeSchema), page: z.number(), totalPages: z.number() });
+export async function browseMealieRecipes(env: Env, search: string, pageNumber: number) {
+  const row = await mealieRow(env);
+  if (!row) throw new MealieError(409, stored('error', 'Connect Mealie first.'));
+  try {
+    const cfg = await decryptConfig(env, 'mealie', row.config) as MealieConfig;
+    const url = new URL(`${mealieUrl(env, cfg.url)}/api/recipes`);
+    url.search = new URLSearchParams({ search, page: String(pageNumber), perPage: '30', orderBy: 'name', orderDirection: 'asc' }).toString();
+    const data = z.object({ items: z.array(z.object({ id: z.string().min(1).max(100), name: z.string().min(1).max(10000), slug: z.string().min(1).max(1000) })).max(30), total_pages: z.number().int().min(0).max(100000) }).parse(JSON.parse(await mealieJson(env, cfg, url)));
+    return MealieRecipesSchema.parse({ items: data.items.map(r => ({ id: r.id, name: r.name.slice(0, 200), sourceUrl: `${cfg.url}/g/${encodeURIComponent(cfg.groupSlug)}/r/${encodeURIComponent(r.slug)}` })), page: pageNumber, totalPages: data.total_pages });
+  } catch { throw new MealieError(502, stored('error', 'Could not load Mealie recipes. Check its address, API token and availability.')); }
 }
 /** Lease serializes manual/background sync and connection changes across isolates. */
 export async function syncMealie(env: Env, from: string, to: string, ctx?: WaitCtx): Promise<{ imported: number; removed: number }> {
