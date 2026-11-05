@@ -41,7 +41,9 @@ async function page(env: Env, cfg: MealieConfig, from: string, to: string, n: nu
   // Mealie 3.29 only permits filterable columns here; its inherited id is not one.
   url.search = new URLSearchParams({ start_date: from, end_date: to, page: String(n), perPage: '100', orderBy: 'date', orderDirection: 'asc' }).toString();
   const res = await outboundFetch(env, env.ALLOW_PRIVATE_MEALIE_URLS === '1')(url, {
-    headers: { Authorization: ['Bearer', cfg.token].join(' '), Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(10000),
+    // The Node address-checking transport requires manual mode. Non-2xx responses below
+    // reject redirects, so neither Node nor Workers forwards the token to another URL.
+    headers: { Authorization: ['Bearer', cfg.token].join(' '), Accept: 'application/json' }, redirect: 'manual', signal: AbortSignal.timeout(10000),
   });
   if (!res.ok || !res.body || Number(res.headers.get('content-length')) > 2_000_000) { await res.body?.cancel(); throw new Error(); }
   const reader = res.body.getReader(); const decoder = new TextDecoder(); let size = 0, text = '';

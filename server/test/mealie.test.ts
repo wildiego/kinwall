@@ -1,10 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
+import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
 import { createApp } from '../src/app.ts';
 import { openDb, applyMigrations } from '../src/d1-sqlite.ts';
 import type { Env } from '../src/env.ts';
 import { createApiKey } from '../src/auth.ts';
+import { nodeFetch } from '../src/outbound-node.ts';
 
 function fixture() {
   const db = openDb(':memory:'); applyMigrations(db, fileURLToPath(new URL('../migrations', import.meta.url)));
@@ -17,6 +20,44 @@ function fixture() {
 const config = { url: 'https://mealie.example', groupSlug: 'home', token: 'obvious-fake-token' };
 const range = { from: '2026-11-01', to: '2026-11-30' };
 const plan = (id: number, title = 'Pasta', date = '2026-11-08') => ({ id, date, entryType: 'dinner', title: '', text: 'Mealie note', recipe: { name: title, slug: 'pasta' } });
+
+test('Mealie sync works through the real Node outbound transport and rejects redirects', async () => {
+  const { env, json, req } = fixture();
+  await json('/api/integrations/mealie', 'PUT', config);
+  let redirect = false, requests = 0;
+  const upstream = createServer((request, response) => {
+    requests++;
+    if (request.headers.authorization !== `Bearer ${config.token}`) { response.writeHead(401).end(); return; }
+    if (redirect) { response.writeHead(302, { Location: '/must-not-follow' }).end(); return; }
+    response.writeHead(200, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ items: [plan(1)], total_pages: 1 }));
+  });
+  upstream.listen(0, '127.0.0.1');
+  await once(upstream, 'listening');
+  try {
+    const address = upstream.address();
+    assert.ok(address && typeof address !== 'string');
+    // Only this fixture resolves the fake upstream to loopback. Exercise nodeFetch itself,
+    // including its redirect contract, without weakening the production address guard.
+    const transport = nodeFetch((_host, options, callback) => {
+      if (options.all) callback(null, [{ address: '127.0.0.1', family: 4 }]);
+      else callback(null, '127.0.0.1', 4);
+    });
+    env.OUTBOUND_FETCH = (input, init) => {
+      const url = new URL(String(input)); url.protocol = 'http:'; url.port = String(address.port);
+      return transport(url, init);
+    };
+    assert.deepEqual(await json('/api/integrations/mealie/sync', 'POST', range), { imported: 1, removed: 0 });
+    assert.equal(requests, 1);
+    redirect = true;
+    assert.equal((await req('/api/integrations/mealie/sync', 'POST', range)).status, 502);
+    assert.equal(requests, 2, 'the redirect was not followed');
+    assert.equal((await json(`/api/meals?${new URLSearchParams(range)}`)).length, 1);
+  } finally {
+    upstream.closeAllConnections();
+    await new Promise<void>((resolve, reject) => upstream.close(error => error ? reject(error) : resolve()));
+  }
+});
 
 test('Mealie 3.29 meal plans use a supported sort column across pages', async () => {
   const { env, json } = fixture();
@@ -98,7 +139,7 @@ test('Mealie stores a sealed token, pulls pages once, updates without recipes, a
   const status = await json('/api/integrations/mealie'); assert.equal(status.connected, true); assert.ok(!JSON.stringify(status).includes(config.token));
   const raw = await db.prepare('SELECT config FROM mealie_connection').first<{ config: string }>(); assert.ok(raw!.config.startsWith('v1:')); assert.ok(!raw!.config.includes(config.token));
   let entries = [plan(1), plan(2, 'Salad')]; let requests = 0;
-  env.OUTBOUND_FETCH = async (url, init) => { requests++; assert.equal(new Headers(init?.headers).get('Authorization'), `Bearer ${config.token}`); assert.equal(init?.redirect, 'error'); const u = new URL(String(url)); assert.equal(u.pathname, '/api/households/mealplans'); assert.equal(u.searchParams.get('start_date'), range.from); const page = Number(u.searchParams.get('page')); return Response.json({ items: entries.slice(page - 1, page), total_pages: entries.length || 1 }); };
+  env.OUTBOUND_FETCH = async (url, init) => { requests++; assert.equal(new Headers(init?.headers).get('Authorization'), `Bearer ${config.token}`); assert.equal(init?.redirect, 'manual'); const u = new URL(String(url)); assert.equal(u.pathname, '/api/households/mealplans'); assert.equal(u.searchParams.get('start_date'), range.from); const page = Number(u.searchParams.get('page')); return Response.json({ items: entries.slice(page - 1, page), total_pages: entries.length || 1 }); };
   await json('/api/integrations/mealie/sync', 'POST', range); assert.equal(requests, 2);
   let meals = await json(`/api/meals?${new URLSearchParams(range)}`); assert.equal(meals.length, 2); assert.equal(meals[0].recipeId, null); assert.equal(meals[0].recipeSnapshot, null); assert.equal(meals[0].sourceUrl, 'https://mealie.example/g/home/r/pasta'); assert.equal((await json('/api/recipes')).length, 0);
   const first = meals.find((m: any) => m.title === 'Pasta'); await json(`/api/meals/${first.id}`, 'PATCH', { notes: 'Keep my note', status: 'prepared' });

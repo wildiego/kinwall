@@ -43,6 +43,8 @@ week-wide entries are not requested. The group recipe route is `/g/<group>/r/<re
   to be imported again while it still exists in Mealie.
 * Sync fetches and validates all pages before changing meals, so provider errors and incomplete
   responses do not clear the plan. The token is never sent across redirects. One sync runs at a time.
+  Both Node and Workers inspect the response without following redirects; the Node transport
+  checks the destination address before connecting.
 
 Kinwall's scheduled task checks a rolling window from seven days ago through 35 days ahead,
 using the family's time zone. Successful automatic checks are at least 15 minutes apart;
