@@ -194,3 +194,39 @@ test('Mealie keeps completed and annotated meals when removed upstream, and refu
   await json('/api/integrations/mealie/sync', 'POST', range); assert.equal((await json(`/api/meals?${new URLSearchParams(range)}`)).length, 2);
   assert.deepEqual((await db.prepare('SELECT * FROM mealie_meals').all()).results, []);
 });
+
+test('Mealie recipe browser searches pages and creates linked local meals', async () => {
+  const { env, db, json, req } = fixture();
+  const display = await createApiKey(db, 'wall', 'display');
+  assert.equal((await req('/api/integrations/mealie/recipes', 'GET', undefined, display.key)).status, 403);
+  const appKey = await createApiKey(db, 'app', 'admin', { kind: 'oauth' });
+  assert.equal((await req('/api/integrations/mealie/recipes', 'GET', undefined, appKey.key)).status, 403);
+  assert.equal((await req('/api/integrations/mealie/recipes')).status, 409);
+  await json('/api/integrations/mealie', 'PUT', config);
+  env.OUTBOUND_FETCH = async (input, init) => {
+    const url = new URL(String(input));
+    assert.equal(url.pathname, '/api/recipes');
+    assert.equal(url.searchParams.get('search'), 'pasta');
+    assert.equal(url.searchParams.get('page'), '2');
+    assert.equal(init?.redirect, 'manual');
+    assert.equal(new Headers(init?.headers).get('Authorization'), `Bearer ${config.token}`);
+    assert.ok(!init?.method || init.method === 'GET');
+    return Response.json({ items: [{ id: 'fake-recipe', name: 'Pasta', slug: 'pasta', secret: config.token }], total_pages: 3 });
+  };
+  const result = await json('/api/integrations/mealie/recipes?search=pasta&page=2');
+  assert.deepEqual(result, { items: [{ id: 'fake-recipe', name: 'Pasta', sourceUrl: 'https://mealie.example/g/home/r/pasta' }], page: 2, totalPages: 3 });
+  const meal = await json('/api/meals', 'POST', { date: range.from, slot: 'dinner', mealKind: 'freeform', title: result.items[0].name, sourceUrl: result.items[0].sourceUrl, servings: 4 });
+  assert.equal(meal.sourceUrl, result.items[0].sourceUrl);
+  assert.equal((await req('/api/integrations/mealie/recipes?page=0')).status, 400);
+});
+
+test('Mealie recipe browser rejects redirects and malformed replies without leaking provider errors', async () => {
+  const { env, json, req } = fixture();
+  await json('/api/integrations/mealie', 'PUT', config);
+  for (const response of [new Response(config.token, { status: 403 }), new Response(null, { status: 302, headers: { Location: 'https://other.example' } }), Response.json({ items: [{ name: 'Pasta' }], total_pages: 1 })]) {
+    env.OUTBOUND_FETCH = async () => response;
+    const r = await req('/api/integrations/mealie/recipes');
+    assert.equal(r.status, 502);
+    assert.ok(!(await r.text()).includes(config.token));
+  }
+});
