@@ -36,7 +36,8 @@ week-wide entries are not requested. The group recipe route is `/g/<group>/r/<re
 * A meal linked to a calendar event is pinned: sync leaves its fields unchanged to avoid silently
   moving the event. Unlink the event to resume updates from Mealie.
 * If an entry disappears from the synced dates, its untouched planned meal is removed. Completed,
-  annotated or calendar-linked meals are kept and detached from sync. Other Kinwall meals and
+  annotated or calendar-linked meals, and meals with a local cook, eaters, changed servings or
+  planned time, are kept and detached from sync. Other Kinwall meals and
   dates outside the sync window are untouched. Removing a linked meal in Kinwall alone allows it
   to be imported again while it still exists in Mealie.
 * Sync fetches and validates all pages before changing meals, so provider errors and incomplete

@@ -16,6 +16,7 @@ export const mealieRow = (env: Env) => env.DB.prepare('SELECT * FROM mealie_conn
 export const MEALIE_BUSY = stored('error', 'Mealie is syncing. Try again in a few minutes.');
 export const MEALIE_FAILED = stored('error', 'Could not sync Mealie. Check its address, API token and availability.');
 export const MEALIE_URL = stored('error', 'Use a public HTTPS Mealie address. For a local server, enable ALLOW_PRIVATE_MEALIE_URLS=1 on self-hosted Kinwall.');
+const DEFAULT_SERVINGS = 4;
 export class MealieError extends Error {
   status: 400 | 409 | 502;
   constructor(status: 400 | 409 | 502, message: string) { super(message); this.status = status; }
@@ -82,7 +83,7 @@ export async function syncMealie(env: Env, from: string, to: string, ctx?: WaitC
       if (sourceUrl && sourceUrl.length > 2000) throw new Error();
       if (old?.calendarEventId) continue; // a calendar-linked meal is pinned to avoid changing its event behind its back
       if (old && old.date === e.date && old.title === title && old.slot === slot && old.sourceUrl === sourceUrl) continue;
-      const meal = { servings: 4, assigneeMemberId: null, eaterIds: [], notes: null, plannedTime: null, calendarEventId: null, calendarEventStart: null, status: 'planned' as const, createdAt: now, ...old,
+      const meal = { servings: DEFAULT_SERVINGS, assigneeMemberId: null, eaterIds: [], notes: null, plannedTime: null, calendarEventId: null, calendarEventStart: null, status: 'planned' as const, createdAt: now, ...old,
         id: old?.id ?? crypto.randomUUID(), date: e.date, title, slot, mealKind: 'freeform' as const, sourceUrl, recipeId: null, recipeSnapshot: null, restaurantId: null, orderType: null, updatedAt: now };
       writes.push(mealWrite(env.DB, meal), env.DB.prepare('INSERT INTO mealie_meals(remote_id,meal_id) VALUES (?,?) ON CONFLICT(remote_id) DO UPDATE SET meal_id=excluded.meal_id').bind(e.id, meal.id)); imported++;
     }
@@ -90,8 +91,11 @@ export async function syncMealie(env: Env, from: string, to: string, ctx?: WaitC
       if (ids.has(link.remote_id)) continue;
       const meal = existing.get(link.remote_id);
       if (!meal || meal.date < from || meal.date > to) continue;
-      // Keep completed, annotated or calendar-linked meals, but detach them.
-      if (meal.status === 'planned' && !meal.notes && !meal.calendarEventId) { writes.push(env.DB.prepare('DELETE FROM meals WHERE id = ?').bind(meal.id)); removed++; }
+      // Local planning belongs to Kinwall too: don't discard a cook, eaters, servings or time
+      // merely because Mealie removed the entry. Keep that meal and detach it from sync.
+      const untouched = meal.status === 'planned' && !meal.notes && !meal.calendarEventId
+        && !meal.assigneeMemberId && !meal.eaterIds.length && meal.servings === DEFAULT_SERVINGS && !meal.plannedTime;
+      if (untouched) { writes.push(env.DB.prepare('DELETE FROM meals WHERE id = ?').bind(meal.id)); removed++; }
       writes.push(env.DB.prepare('DELETE FROM mealie_meals WHERE remote_id = ?').bind(link.remote_id));
     }
     writes.push(env.DB.prepare('UPDATE mealie_connection SET last_synced_at = ?, last_error = NULL WHERE id = 1 AND lease = ?').bind(now, lease));

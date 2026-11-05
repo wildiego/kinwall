@@ -18,6 +18,60 @@ const config = { url: 'https://mealie.example', groupSlug: 'home', token: 'obvio
 const range = { from: '2026-11-01', to: '2026-11-30' };
 const plan = (id: number, title = 'Pasta', date = '2026-11-08') => ({ id, date, entryType: 'dinner', title: '', text: 'Mealie note', recipe: { name: title, slug: 'pasta' } });
 
+test('Mealie removal preserves local cook, eaters, servings and planned time independently', async () => {
+  const { env, db, json } = fixture();
+  await json('/api/integrations/mealie', 'PUT', config);
+  const member = await json('/api/members', 'POST', { name: 'Alex', color: '#112233' });
+  env.OUTBOUND_FETCH = async () => Response.json({ items: [1, 2, 3, 4, 5].map(id => plan(id, `Meal ${id}`)), total_pages: 1 });
+  await json('/api/integrations/mealie/sync', 'POST', range);
+  const meals = await json(`/api/meals?${new URLSearchParams(range)}`);
+  const patches = [{ assigneeMemberId: member.id }, { eaterIds: [member.id] }, { servings: 6 }, { plannedTime: '19:30' }];
+  for (let i = 0; i < patches.length; i++) await json(`/api/meals/${meals[i].id}`, 'PATCH', patches[i]);
+  env.OUTBOUND_FETCH = async () => Response.json({ items: [], total_pages: 0 });
+  assert.deepEqual(await json('/api/integrations/mealie/sync', 'POST', range), { imported: 0, removed: 1 });
+  const kept = await json(`/api/meals?${new URLSearchParams(range)}`);
+  assert.equal(kept.length, 4);
+  for (let i = 0; i < patches.length; i++) {
+    const meal = kept.find((m: any) => m.id === meals[i].id);
+    for (const [key, value] of Object.entries(patches[i])) assert.deepEqual(meal[key], value);
+  }
+  assert.deepEqual((await db.prepare('SELECT * FROM mealie_meals').all()).results, []);
+});
+
+test('Mealie blocks connection changes and competing syncs while fetching', async () => {
+  const { env, req, json } = fixture();
+  await json('/api/integrations/mealie', 'PUT', config);
+  let started!: () => void, release!: () => void;
+  const fetching = new Promise<void>(resolve => { started = resolve; });
+  const response = new Promise<void>(resolve => { release = resolve; });
+  env.OUTBOUND_FETCH = async () => { started(); await response; return Response.json({ items: [plan(1)], total_pages: 1 }); };
+  const syncing = req('/api/integrations/mealie/sync', 'POST', range);
+  await fetching;
+  try {
+    assert.equal((await req('/api/integrations/mealie/sync', 'POST', range)).status, 409);
+    assert.equal((await req('/api/integrations/mealie', 'PUT', config)).status, 409);
+    assert.equal((await req('/api/integrations/mealie', 'DELETE')).status, 409);
+  } finally { release(); }
+  assert.equal((await syncing).status, 200);
+  assert.deepEqual(await json('/api/integrations/mealie/sync', 'POST', range), { imported: 0, removed: 0 });
+});
+
+test('Mealie exports include meals but exclude connection credentials and sync links', async () => {
+  const { env, db, json } = fixture();
+  await json('/api/integrations/mealie', 'PUT', config);
+  env.OUTBOUND_FETCH = async () => Response.json({ items: [plan(1)], total_pages: 1 });
+  await json('/api/integrations/mealie/sync', 'POST', range);
+  const exported = await json('/api/export');
+  assert.equal(exported.meals.length, 1);
+  assert.equal(exported.meals[0].sourceUrl, 'https://mealie.example/g/home/r/pasta');
+  const sealed = (await db.prepare('SELECT config FROM mealie_connection').first<{ config: string }>())!.config;
+  const text = JSON.stringify(exported);
+  assert.ok(!text.includes(config.token));
+  assert.ok(!text.includes(sealed));
+  assert.ok(!text.includes('mealie_connection'));
+  assert.ok(!text.includes('mealie_meals'));
+});
+
 test('Mealie stores a sealed token, pulls pages once, updates without recipes, and reconciles only its meals', async () => {
   const { env, db, json } = fixture();
   await json('/api/integrations/mealie', 'PUT', config);
