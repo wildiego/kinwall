@@ -77,3 +77,19 @@ These endpoints require a parent/admin sign-in and reject paired displays and co
 Connection changes and sync return `409` while a sync holds a lease. Provider/response failures
 return a redacted `502`; check the URL, token, server availability and proxy rules. An invalid or
 private URL without the explicit self-hosting opt-in returns `400`.
+
+## Choose a Mealie recipe when planning
+
+In **Meals → Plan meal**, choose **Choose from Mealie**. Search your Mealie recipe library,
+use Previous/Next to browse pages, and select a recipe. Choose the day, servings, cook and
+other details, then **Add meal**. Kinwall saves the name and a link to the recipe; ingredients
+and instructions stay in Mealie. These locally planned meals are independent of Mealie's
+meal-plan sync and are never sent to Mealie or removed by sync.
+
+The saved connection is reused. Recipe browsing uses `GET /api/recipes` on Mealie; if your
+proxy has endpoint-specific exceptions, permit that authenticated endpoint too. A rule that
+only permits `/api/households/mealplans` will not cover recipe browsing.
+
+Kinwall exposes parent-only `GET /api/integrations/mealie/recipes?search=&page=1`, returning
+`{items:[{id,name,sourceUrl}],page,totalPages}` with 30 recipes per page. No provider token,
+recipe body or provider pagination URL is returned. Search is limited to 200 characters.
