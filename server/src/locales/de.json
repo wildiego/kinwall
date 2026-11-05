@@ -833,5 +833,7 @@
   "error|Manage Mealie from a parent's device.": "Verwalte Mealie vom Gerät eines Elternteils aus.",
   "error|Mealie is syncing. Try again in a few minutes.": "Mealie wird synchronisiert. Versuche es in ein paar Minuten erneut.",
   "error|Turn on Meals before syncing Mealie.": "Aktiviere Mahlzeiten, bevor du Mealie synchronisierst.",
-  "error|Use a public HTTPS Mealie address. For a local server, enable ALLOW_PRIVATE_MEALIE_URLS=1 on self-hosted Kinwall.": "Verwende eine öffentliche HTTPS-Adresse für Mealie. Aktiviere für einen lokalen Server ALLOW_PRIVATE_MEALIE_URLS=1 im selbst gehosteten Kinwall."
+  "error|Use a public HTTPS Mealie address. For a local server, enable ALLOW_PRIVATE_MEALIE_URLS=1 on self-hosted Kinwall.": "Verwende eine öffentliche HTTPS-Adresse für Mealie. Aktiviere für einen lokalen Server ALLOW_PRIVATE_MEALIE_URLS=1 im selbst gehosteten Kinwall.",
+  "error|Connect Mealie first.": "Verbinde zuerst Mealie.",
+  "error|Could not load Mealie recipes. Check its address, API token and availability.": "Mealie-Rezepte konnten nicht geladen werden. Prüfe Adresse, API-Token und Verfügbarkeit."
 }
