@@ -4962,7 +4962,6 @@
   "Ends after {n} dose is recorded as taken.": "Endet, sobald {n} Dosis als eingenommen eingetragen wurde.",
   "Ends after {n} doses are recorded as taken.": "Endet, sobald {n} Dosen als eingenommen eingetragen wurden.",
   "Automatic sync checks the past 7 days and next 35 days about every 15 minutes. Sync now refreshes the dates currently shown in Meals.": "Die automatische Synchronisierung prüft etwa alle 15 Minuten die letzten 7 und nächsten 35 Tage. Jetzt synchronisieren aktualisiert die in Mahlzeiten angezeigten Daten.",
-  "Bring planned meals into Kinwall. Recipes, ingredients and instructions stay in Mealie; open the recipe link to cook there.": "Zeige geplante Mahlzeiten in Kinwall. Rezepte, Zutaten und Anleitungen bleiben in Mealie; öffne zum Kochen den Rezeptlink.",
   "Could not connect Mealie.": "Mealie konnte nicht verbunden werden.",
   "Create an API token in your Mealie profile. Kinwall stores it encrypted and never shows it again.": "Erstelle ein API-Token in deinem Mealie-Profil. Kinwall speichert es verschlüsselt und zeigt es nicht erneut an.",
   "Disconnect Mealie": "Mealie trennen",
@@ -4981,5 +4980,13 @@
   "New API token (optional)": "Neues API-Token (optional)",
   "Save connection": "Verbindung speichern",
   "The part after /g/ in a Mealie recipe link, for example home in /g/home/r/pasta. The API token chooses the household.": "Der Teil nach /g/ in einem Mealie-Rezeptlink, zum Beispiel home in /g/home/r/pasta. Das API-Token bestimmt den Haushalt.",
-  "https://mealie.example": "https://mealie.example"
+  "https://mealie.example": "https://mealie.example",
+  "Bring planned meals into Kinwall, or choose a Mealie recipe when planning a meal. Ingredients and instructions stay in Mealie.": "Importiere geplante Mahlzeiten in Kinwall oder wähle beim Planen ein Mealie-Rezept. Zutaten und Zubereitung bleiben in Mealie.",
+  "Choose a recipe to plan it in Kinwall. Open its link in Mealie for ingredients and instructions.": "Wähle ein Rezept für die Planung in Kinwall. Öffne den Link in Mealie für Zutaten und Zubereitung.",
+  "Choose from Mealie": "Aus Mealie auswählen",
+  "Mealie recipes": "Mealie-Rezepte",
+  "No Mealie recipes found.": "Keine Mealie-Rezepte gefunden.",
+  "Page {page} of {total}": "Seite {page} von {total}",
+  "Previous": "Zurück",
+  "Search Mealie recipes": "Mealie-Rezepte suchen"
 }
