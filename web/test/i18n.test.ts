@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import type { Lang } from '../src/i18n.ts'
-import { DAY, formatDate, intlLocale, lang, msg, pickLang, playerLang, setLang, t, tc, tn } from '../src/i18n.ts'
+import { DAY, formatDate, intlLocale, lang, LANGUAGES, msg, pickLang, playerLang, setLang, t, tc, tn } from '../src/i18n.ts'
 
 const de = {
   'Notifications': 'Benachrichtigungen', 'Remove: {title}': 'Entfernen: {title}', 'now-next|Next': 'Danach', 'Next': 'Weiter',
@@ -123,5 +123,16 @@ test('setLang: unsupported and inherited keys fall back to English without calli
     await setLang(invalid as Lang, () => { throw new Error('Invalid languages must not load') })
     assert.equal(lang(), 'en')
     assert.equal(t('Notifications'), 'Notifications')
+  }
+})
+
+test('every offered language other than English has a built-in loader', () => {
+  // Don't call setLang with the real dictionaries here: node:test runs files in parallel and
+  // the current language is module state shared across the suite.
+  const src = readFileSync(new URL('../src/i18n.ts', import.meta.url), 'utf8')
+  for (const { key } of LANGUAGES) {
+    if (key === 'en') continue
+    assert.match(src, new RegExp(`\\['${key}',\\s*\\(\\)\\s*=>\\s*import\\('\\./locales/${key}\\.json'`))
+    assert.equal(readFileSync(new URL(`../src/locales/${key}.json`, import.meta.url), 'utf8').includes('"Settings":'), true)
   }
 })

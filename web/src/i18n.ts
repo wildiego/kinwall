@@ -26,7 +26,9 @@ export const LANGUAGES: { key: Lang; label: string }[] = [
 ]
 type Dict = Record<string, string>
 const LOADERS = new Map<Exclude<Lang, 'en'>, () => Promise<{ default: Dict }>>([
-  ['de', () => import('./locales/de.json')],
+  ['de', () => import('./locales/de.json', { with: { type: 'json' } })],
+  ['fr', () => import('./locales/fr.json', { with: { type: 'json' } })],
+  ['es', () => import('./locales/es.json', { with: { type: 'json' } })],
 ])
 export const isLang = (v: unknown): v is Lang => LANGUAGES.some(l => l.key === v)
 export const languageName = (l: Lang) => LANGUAGES.find(x => x.key === l)!.label
